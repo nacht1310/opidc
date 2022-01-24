@@ -1,10 +1,13 @@
 // ignore_for_file: avoid_print
 
+import 'dart:convert';
+import 'package:crypto/crypto.dart';
 import 'package:flutter/material.dart';
 // import the io version
 import 'package:openid_client/openid_client_io.dart';
 // use url launcher package
 import 'package:url_launcher/url_launcher.dart';
+import 'dart:math';
 
 void main() {
   runApp(const MyApp());
@@ -47,7 +50,7 @@ class _MyHomePageState extends State<MyHomePage> {
                       Uri.parse(
                           'https://authenticationserver20220111094343.azurewebsites.net'),
                       "user-management-app",
-                      ['IdentityServerApi', 'profile']);
+                      ['openid', 'IdentityServerApi', 'profile']);
                   print(userInfo.toString());
                 },
                 child: const Text("Here the code"))
@@ -62,12 +65,18 @@ class _MyHomePageState extends State<MyHomePage> {
     // create the client
     var issuer = await Issuer.discover(uri);
     var client = Client(issuer, clientId);
+    String code = getRandomString(128);
+    var hash = sha256.convert(ascii.encode(code));
+    String codeChallenge = base64Url
+        .encode(hash.bytes)
+        .replaceAll("=", "")
+        .replaceAll("+", "-")
+        .replaceAll("/", "_");
     // create a function to open a browser with an url
     urlLauncher(String url) async {
-      print(
-          '$url&&code_challenge=PqokAO1BQBHyJVKPqokAO1BQBHyJVKPqokAO1BQBHyJVKPqokAO1BQBHyJVKPqokAO1BQBHyJVKPqokAO1BQBHyJVKPqokAO1BQBHyJVKPqokAO1BQBHyJVK12345678&code_challenge_method=S256');
+      print('$url&code_challenge=$codeChallenge&code_challenge_method=S256');
       await launch(
-          '$url&&code_challenge=PqokAO1BQBHyJVKPqokAO1BQBHyJVKPqokAO1BQBHyJVKPqokAO1BQBHyJVKPqokAO1BQBHyJVKPqokAO1BQBHyJVKPqokAO1BQBHyJVKPqokAO1BQBHyJVK12345678&code_challenge_method=S256',
+          '$url&code_challenge=$codeChallenge&code_challenge_method=S256',
           forceWebView: true,
           enableJavaScript: true);
     }
@@ -89,4 +98,11 @@ class _MyHomePageState extends State<MyHomePage> {
     print(res.accessToken);
     return res;
   }
+
+  final String _chars =
+      'AaBbCcDdEeFfGgHhIiJjKkLlMmNnOoPpQqRrSsTtUuVvWwXxYyZz1234567890';
+  final Random _rnd = Random();
+
+  String getRandomString(int length) => String.fromCharCodes(Iterable.generate(
+      length, (_) => _chars.codeUnitAt(_rnd.nextInt(_chars.length))));
 }
